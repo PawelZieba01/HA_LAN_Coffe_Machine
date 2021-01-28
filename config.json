@@ -1,0 +1,16 @@
+{
+  "_comment": "KONFIGURACJA STEROWNIKA EKSPRESU DO KAWY BRAUN",
+  "version": "1.0",
+  "author": "Paweł Zięba",
+  "date": "27.01.2021",
+  "static_ip": "192.168.1.41",
+  "mask_ip": "255.255.255.0",
+  "gate_ip": "192.168.1.1",
+  "dns_ip": "8.8.8.8",
+  "ssid": "bestconnect.pl 130",
+  "password": "pawel130",
+  "server_ip": "192.168.1.110",
+  "server_port": "8123",
+  "cmd_start": "cmd_start",
+  "api_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiI1NWQyNTgxYzJkYTQ0MDIyOWVmODczN2JlNzk3MzM2YyIsImlhdCI6MTYxMTc1Nzk0MywiZXhwIjoxOTI3MTE3OTQzfQ.Z4SvYXM_F9KhqXfyAWUX9tfQ5fwZAsgqAFkIc9zM3h0",
+}
