@@ -251,37 +251,49 @@ def make_coffee():
         el_sw_pin.value(0)
         
     elif(status == 5):
+        el_sw_pin.value(1)
+        sleep(0.2)
+        el_sw_pin.value(0)
         while(status != 1 and status != 4):
-            pass
+            print('czekam')
+            status = get_express_status()###########################
+            sleep(0.1)
+            
         if(status == 1):
             el_sw_pin.value(1)
-            sleep(0.1)
+            sleep(0.2)
             el_sw_pin.value(0)
         elif(status == 4):
             head_sw_pin.value(0)
             sleep(0.5)
             head_sw_pin.value(1)
             
-            sleep(2)
+            sleep(5)
             el_sw_pin.value(1)
-            sleep(0.1)
+            sleep(0.2)
             el_sw_pin.value(0)
             
     elif(status == 6):
+        el_sw_pin.value(1)
+        sleep(0.2)
+        el_sw_pin.value(0)
         while(status != 1 and status != 4):
-            pass
+            print('czekam')
+            status = get_express_status()#################################
+            sleep(0.1)
+            
         if(status == 1):
             el_sw_pin.value(1)
-            sleep(0.1)
+            sleep(0.2)
             el_sw_pin.value(0)
         elif(status == 4):
             head_sw_pin.value(0)
             sleep(0.5)
             head_sw_pin.value(1)
             
-            sleep(2)
+            sleep(5)
             el_sw_pin.value(1)
-            sleep(0.1)
+            sleep(0.2)
             el_sw_pin.value(0)
         
 #------------------------------------------------------------------------------------------------------------
