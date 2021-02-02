@@ -53,6 +53,7 @@ el_sw_pin = Pin(26, Pin.OUT)     #wyjście załączające ekspres
 
 
 ##
+el_sw_pin.value(0)
 head_sw_pin.value(1)             #obwód czujnika otwarcia głowicy zamknięty
 ##
 #------------------------------------------------------------------------------------------------------------
@@ -60,9 +61,12 @@ head_sw_pin.value(1)             #obwód czujnika otwarcia głowicy zamknięty
 
 
 #-------------------------------------------   ZMIENNE GLOBALNE   -------------------------------------------
-last_led_pin_values = [led1_pin.value(), led2_pin.value(), led3_pin.value(), led4_pin.value()]       #poprzedni stan diod
+last_led_pin_values = [led1_pin.value(), led2_pin.value(), led3_pin.value(), led4_pin.value()]       #poprzednie stany diod
 reset_tslcp_times = [0,0,0,0]                                                                        #czasy w których zresetowano zmienne 'time_since_last_change_pins'
-time_since_last_change_pins = [0,0,0,0]
+time_since_last_change_pins = [0,0,0,0]                                                              #czasy od ostatnich zmian stanów diod 
+express_status = -1                                                                                  #status ekspresu -   -1 oznacza aktualizację danych o ekspresie
+last_head_status = 0                                                                                 #poprzedni status głowicy
+coffee_ready = 0                                                                                     #flaga gotowości kawy do odebrania
 #------------------------------------------------------------------------------------------------------------
 
 
@@ -126,8 +130,9 @@ def send_data_to_HA(data):
     
     res = urequests.post(url, headers=headers, data=data)     #wysłanie danych do serwera - POST
     res.close()
-    print(res)
-    print(data)
+    print('Zaktualizowano dane na serwerze.')
+    #print(res)
+    print("Wysłano:  " + str(data))
             
             
             
@@ -151,41 +156,48 @@ def get_leds_time():
 
 #funkcja pobierająca informacje w jakim trybie jest ekspres
 def get_express_status():
-    global time_since_last_change_pins, reset_tslcp_times, last_led_pin_values
+    global time_since_last_change_pins, reset_tslcp_times, last_led_pin_values, debug_msg
     
     #ekspres gotowy do pracy w trybia 'auto'
     if(led1_pin.value() == 0 and time_since_last_change_pins[0] > 2 and time_since_last_change_pins[1] > 2 and time_since_last_change_pins[2] > 2 and time_since_last_change_pins[3] > 2):
-        print("TRYB 1: gotowy do pracy")
+        #print("TRYB 1: Gotowy do pracy.")
+        debug_msg = "TRYB 1: Gotowy do pracy."
         return 1
         
     #ekspres w trakcie pracy - tryb 'auto'
     elif(time_since_last_change_pins[0] < 2 and time_since_last_change_pins[1] > 2 and time_since_last_change_pins[2] > 2 and time_since_last_change_pins[3] > 2):
-        print("TRYB 2: kawa w trakcie przygotowywania")
+        #print("TRYB 2: Kawa w trakcie przygotowywania.")
+        debug_msg = "TRYB 2: Kawa w trakcie przygotowywania."
         return 2
     
     #ekspres zakończył pracę - jest w trybie 'manual'
     elif(led2_pin.value() == 0 and time_since_last_change_pins[0] > 2 and time_since_last_change_pins[1] > 2 and time_since_last_change_pins[2] > 2 and time_since_last_change_pins[3] > 2):
-        print("TRYB 3: kawa gotowa!")
+        #print("TRYB 3: Kawa gotowa!")
+        debug_msg = "TRYB 3: Kawa gotowa!"
         return 3
         
     #ekspres ma zagrzaną wodę ale nie ogarnia żeby się włączyć przyciskiem - trzeba zasymulować otwarcie i zamknięcie głowicy
     elif(led3_pin.value() == 0 and time_since_last_change_pins[0] > 2 and time_since_last_change_pins[1] > 2 and time_since_last_change_pins[2] > 2 and time_since_last_change_pins[3] > 2):
-        print("TRYB 4: woda jest ciepła - otwórz i zamknij głowicę")
+        #print("TRYB 4: Woda jest ciepła - otwórz i zamknij głowicę.")
+        debug_msg = "TRYB 4: Woda jest ciepła - otwórz i zamknij głowicę."
         return 4
         
     #ekspres w trybie standby
     elif(time_since_last_change_pins[0] > 2 and time_since_last_change_pins[1] > 2 and time_since_last_change_pins[2] < 2 and time_since_last_change_pins[3] > 2):
-        print("TRYB 5: grzanie wody")
+        #print("TRYB 5: Grzanie wody.")
+        debug_msg = "TRYB 5: Grzanie wody."
         return 5
         
     #ekspres w trybie standby
     elif(led4_pin.value() == 0 and time_since_last_change_pins[0] > 2 and time_since_last_change_pins[1] > 2 and time_since_last_change_pins[2] > 2 and time_since_last_change_pins[3] > 2):
-        print("TRYB 6: standby")
+        #print("TRYB 6: Standby")
+        debug_msg = "TRYB 6: Standby"
         return 6
         
     #brak wody lub kapsułki
     elif(time_since_last_change_pins[0] < 2 and time_since_last_change_pins[1] < 2 and time_since_last_change_pins[2] < 2 and time_since_last_change_pins[3] < 2):
-        print("BŁĄD: brak wody lub kapsułki")
+        #print("BŁĄD: Brak wody lub kapsułki.")
+        debug_msg = "BŁĄD: Brak wody lub kapsułki."
         return 0
     else:
         return -1
@@ -214,95 +226,102 @@ def get_data_to_send_to_HA(status):
 
 #funkcja sprawdzająca czy głowica została otwarta i zamknięta, 0 - zamknięta, 1 - otwarta
 def get_head_status():
-    global last_head_status
+    global last_head_status, coffee_ready
     
     current_head_status = head_open_sw_pin.value()
     if(last_head_status == 0 and current_head_status == 1):
-        print('otworzono głowice')
+        print('Otworzono głowice.')
         last_head_status = current_head_status
         
     elif(last_head_status == 1 and current_head_status == 0):
-        print('zamknięto głowice')
+        print('Zamknięto głowice.')
         last_head_status = current_head_status
+        coffee_ready = 0
 
 
 
 #funkcja odpowiedzialna za robienie kawy
 def make_coffee():
-    status = get_express_status()
-    
-    if(status == 1):
-        el_sw_pin.value(1)
-        sleep(0.2)
-        el_sw_pin.value(0)
+    #jeżeli odebrano poprzednio zrobioną kawę, wymieniono kapsułke i zamknięto głowicę
+    if(coffee_ready == 0 and last_head_status == 0):
+        print("Robimy kawę!!!")
+        status = get_express_status()
         
-    elif(status == 2 or status == 3 or status == 0):
-        return 0
-    
-    elif(status == 4):
-        
-        head_sw_pin.value(0)
-        sleep(0.5)
-        head_sw_pin.value(1)
-        
-        sleep(4)
-        el_sw_pin.value(1)
-        sleep(0.2)
-        el_sw_pin.value(0)
-        
-    elif(status == 5):
-        el_sw_pin.value(1)
-        sleep(0.2)
-        el_sw_pin.value(0)
-        while(status != 1 and status != 4):
-            print('czekam')
-            status = get_express_status()###########################
-            sleep(0.1)
-            
         if(status == 1):
             el_sw_pin.value(1)
             sleep(0.2)
             el_sw_pin.value(0)
+            
+        elif(status == 2 or status == 3 or status == 0):
+            print("Nie można zrobić kawy: -kawa w trakcie przygotowania   -kawa gotowa   -brak wody lub kapsułki")
+            return 0
+        
         elif(status == 4):
+            
             head_sw_pin.value(0)
             sleep(0.5)
             head_sw_pin.value(1)
             
-            sleep(5)
+            sleep(4)
             el_sw_pin.value(1)
-            sleep(0.2)
-            el_sw_pin.value(0)
-            
-    elif(status == 6):
-        el_sw_pin.value(1)
-        sleep(0.2)
-        el_sw_pin.value(0)
-        while(status != 1 and status != 4):
-            print('czekam')
-            status = get_express_status()#################################
             sleep(0.1)
-            
-        if(status == 1):
-            el_sw_pin.value(1)
-            sleep(0.2)
             el_sw_pin.value(0)
-        elif(status == 4):
-            head_sw_pin.value(0)
-            sleep(0.5)
-            head_sw_pin.value(1)
             
-            sleep(5)
+        elif(status == 5):
             el_sw_pin.value(1)
-            sleep(0.2)
+            sleep(0.1)
             el_sw_pin.value(0)
+            while(status != 1 and status != 4):
+                print('Czekam..')
+                status = get_express_status()###########################
+                sleep(0.1)
+                
+            if(status == 1):
+                el_sw_pin.value(1)
+                sleep(0.1)
+                el_sw_pin.value(0)
+            elif(status == 4):
+                head_sw_pin.value(0)
+                sleep(0.5)
+                head_sw_pin.value(1)
+                
+                sleep(5)
+                el_sw_pin.value(1)
+                sleep(0.1)
+                el_sw_pin.value(0)
+                
+        elif(status == 6):
+            el_sw_pin.value(1)
+            sleep(0.1)
+            el_sw_pin.value(0)
+            while(status != 1 and status != 4):
+                print('Czekam.')
+                status = get_express_status()#################################
+                sleep(0.1)
+                
+            if(status == 1):
+                el_sw_pin.value(1)
+                sleep(0.1)
+                el_sw_pin.value(0)
+            elif(status == 4):
+                head_sw_pin.value(0)
+                sleep(0.5)
+                head_sw_pin.value(1)
+                
+                sleep(5)
+                el_sw_pin.value(1)
+                sleep(0.1)
+                el_sw_pin.value(0)
+    else:
+        print("Poprzednia kawa nie została jeszcze odebrana!   lub   Głowica niezamknięta!")
         
 #------------------------------------------------------------------------------------------------------------
 
 
 
-#--------------------------------   WĄTEK OBSŁUGUJĄCY POBIERANIE I AKTUALIZACJĘ INFORMACJI O EKSPRESIE   --------------------------------
-def express_status_thread():
-    print('wątek wystartował!')
+#--------------------------------   WĄTEK OBSŁUGUJĄCY KOMUNIKACJE SIECIOWĄ   --------------------------------
+def network_server_thread():
+    print('Wątek wystartował!')
     
     #wątek obsługujący komunikację sieciową
     while True:
@@ -317,7 +336,6 @@ def express_status_thread():
 
         #jeśli odebrano rozkaz robienia kawy
         if(str(request).find(cmd_start) != -1):
-            print("robimy kawe")
             make_coffee()
     
     
@@ -326,25 +344,37 @@ def express_status_thread():
 #------------------------------------------------------------------------------------------------------------
 
 
+_thread.start_new_thread(network_server_thread, ())                   #uruchomienie wątku express_status_thread()
 
-#----------------------------------------   GŁÓWNA PĘTLA PROGRAMU   -----------------------------------------
-_thread.start_new_thread(express_status_thread, ())       #uruchomienie wątku express_status_thread()
 
-last_data_to_send = b'{"state":"Kawy? "}'
-send_data_to_HA(last_data_to_send)             #wstępne wysłanie danych do serwera
-express_status = 0
+#----------------------------------------   GŁÓWNY WĄTEK PROGRAMU   -----------------------------------------
+
+last_data_to_send = b'{"state":"status -1"}'                          #Ostatnio wysłane dane 
+send_data_to_HA(last_data_to_send)                                    #wstępne wysłanie danych do serwera
 
 
 while True:
+    get_head_status()
     get_leds_time()
-    express_status = get_express_status()                          #pobranie statusu ekspresu
-    data_to_send = get_data_to_send_to_HA(express_status)          #przygotowanie danych do wysłania na podstawie statusu
+    express_status = get_express_status()                             #pobranie statusu ekspresu
+    data_to_send = get_data_to_send_to_HA(express_status)             #przygotowanie danych do wysłania na podstawie statusu
     
-    print(data_to_send)
-    #jeżeli zmienił się status i poprawnie go odczytano 
-    if(last_data_to_send != data_to_send and express_status != -1):
-        last_data_to_send = data_to_send
-        send_data_to_HA(data_to_send)                              #wysłanie danych do serwera
+    #jeżeli kawa została odebrana
+    if(coffee_ready == 0):
+        
+        #jeżeli zmienił się status 
+        if(last_data_to_send != data_to_send):
+            print(debug_msg)
+            print("")
+            last_data_to_send = data_to_send
+            
+            #nie wysyłaj do serera statusu -1
+            if(express_status != -1):                              
+                send_data_to_HA(data_to_send)                          #wysłanie danych do serwera
+                
+                #jeżeli zrobiono kawę ustaw flagę gotowości kawy
+                if(express_status == 3):
+                    coffee_ready = 1
     
     sleep(0.1)
 #------------------------------------------------------------------------------------------------------------    
