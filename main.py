@@ -124,22 +124,25 @@ s_server.listen(5)
 def send_data_to_HA(data):
     global server_ip, server_port
     
-    url = 'http://' + server_ip + ':' + server_port + '/api/states/sensor.ekspres_do_kawy'
-    headers = {"Authorization": "Bearer " + api_token}
-    #data = '{"state":"Robimy kawe ;)"}'
-    
-    res = urequests.post(url, headers=headers, data=data)     #wysłanie danych do serwera - POST
-    res.close()
-    print('Zaktualizowano dane na serwerze.')
-    #print(res)
-    print("Wysłano:  " + str(data))
-            
+    try:
+        url = 'http://' + server_ip + ':' + server_port + '/api/states/sensor.coffee_express'
+        headers = {"Authorization": "Bearer " + api_token}
+        #data = '{"state":"Robimy kawe ;)"}'
+        
+        res = urequests.post(url, headers=headers, data=data)     #wysłanie danych do serwera - POST
+        res.close()
+        print('Zaktualizowano dane na serwerze.')
+        #print(res)
+        print("Wysłano:  " + str(data))
+    except:
+        print("Błąd podczas wysyłania danych do HA")
+        pass
             
             
             
 #funkcja pobierająca czasy od ostatnich zmian stanów diod
 def get_leds_time():
-    global time_since_last_change_pins, reset_tslcp_times, last_led_pin_values
+    global time_since_last_change_pins, reset_tslcp_times, last_led_pin_values, express_status
     
     current_pin_values = [led1_pin.value(), led2_pin.value(), led3_pin.value(), led4_pin.value()]
     for i in range(4):
@@ -237,80 +240,82 @@ def get_head_status():
         print('Zamknięto głowice.')
         last_head_status = current_head_status
         coffee_ready = 0
+        led.value(1)
 
 
 
 #funkcja odpowiedzialna za robienie kawy
 def make_coffee():
+    global express_status
+    
     #jeżeli odebrano poprzednio zrobioną kawę, wymieniono kapsułke i zamknięto głowicę
     if(coffee_ready == 0 and last_head_status == 0):
         print("Robimy kawę!!!")
-        status = get_express_status()
+        #status = get_express_status()
         
-        if(status == 1):
+        if(express_status == 1):
             el_sw_pin.value(1)
             sleep(0.2)
             el_sw_pin.value(0)
             
-        elif(status == 2 or status == 3 or status == 0):
+        elif(express_status == 2 or express_status == 3 or express_status == 0):
             print("Nie można zrobić kawy: -kawa w trakcie przygotowania   -kawa gotowa   -brak wody lub kapsułki")
             return 0
         
-        elif(status == 4):
-            
+        elif(express_status == 4):
             head_sw_pin.value(0)
             sleep(0.5)
             head_sw_pin.value(1)
-            
-            sleep(4)
-            el_sw_pin.value(1)
-            sleep(0.1)
-            el_sw_pin.value(0)
-            
-        elif(status == 5):
-            el_sw_pin.value(1)
-            sleep(0.1)
-            el_sw_pin.value(0)
-            while(status != 1 and status != 4):
+            sleep(3)
+            while((express_status != 1 and express_status != 4) or express_status == -1):
                 print('Czekam..')
-                status = get_express_status()###########################
+                print(express_status)
+                #status = get_express_status()###########################
                 sleep(0.1)
                 
-            if(status == 1):
+            print(express_status)    
+            if(express_status == 1):
+                sleep(3)
                 el_sw_pin.value(1)
-                sleep(0.1)
+                sleep(0.2)
                 el_sw_pin.value(0)
-            elif(status == 4):
+            elif(express_status == 4):
+                sleep(3)
                 head_sw_pin.value(0)
                 sleep(0.5)
                 head_sw_pin.value(1)
                 
                 sleep(5)
                 el_sw_pin.value(1)
-                sleep(0.1)
+                sleep(0.2)
                 el_sw_pin.value(0)
-                
-        elif(status == 6):
+            
+        elif(express_status == 5 or express_status == 6):
             el_sw_pin.value(1)
-            sleep(0.1)
+            sleep(0.2)
             el_sw_pin.value(0)
-            while(status != 1 and status != 4):
-                print('Czekam.')
-                status = get_express_status()#################################
+            sleep(3)
+            while((express_status != 1 and express_status != 4) or express_status == -1):
+                print('Czekam..')
+                print(express_status)
+                #status = get_express_status()###########################
                 sleep(0.1)
                 
-            if(status == 1):
+            print(express_status)    
+            if(express_status == 1):
+                sleep(3)
                 el_sw_pin.value(1)
-                sleep(0.1)
+                sleep(0.2)
                 el_sw_pin.value(0)
-            elif(status == 4):
+            elif(express_status == 4):
+                sleep(3)
                 head_sw_pin.value(0)
                 sleep(0.5)
                 head_sw_pin.value(1)
                 
                 sleep(5)
                 el_sw_pin.value(1)
-                sleep(0.1)
+                sleep(0.2)
                 el_sw_pin.value(0)
     else:
         print("Poprzednia kawa nie została jeszcze odebrana!   lub   Głowica niezamknięta!")
@@ -375,6 +380,7 @@ while True:
                 #jeżeli zrobiono kawę ustaw flagę gotowości kawy
                 if(express_status == 3):
                     coffee_ready = 1
-    
+                    led.value(0)
+#     print(led1_pin.value(), led2_pin.value(), led3_pin.value(), led4_pin.value())
     sleep(0.1)
 #------------------------------------------------------------------------------------------------------------    
