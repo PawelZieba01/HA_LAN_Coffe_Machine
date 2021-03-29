@@ -26,6 +26,7 @@ password = config_dict["password"]
 
 server_ip = config_dict["server_ip"]
 server_port = config_dict["server_port"]
+listen_port = int(config_dict["listen_port"])
 
 api_token = config_dict["api_token"]
 
@@ -101,6 +102,10 @@ print("Połączenie udane")
 print("Konfigurajca Wi-Fi:  ", end =" ")
 print(wlan.ifconfig())
 
+#uruchomienie webrepl na bieżącym adresie
+import webrepl
+webrepl.start()
+
 #sygnalizacja podłączenia do sieci - LED
 led.value(1)
 sleep(2)
@@ -112,7 +117,7 @@ for i in range(5):
     sleep(0.1)
 
 #nasłuchiwanie na porcie 9000 
-s_server.bind(('', 9000))
+s_server.bind(('', listen_port))
 s_server.listen(5)
 #------------------------------------------------------------------------------------------------------------
 
