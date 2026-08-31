@@ -20,6 +20,6 @@ The ESP32 monitors the state of the LEDs available on the coffee machine's contr
 
 Two system threads are running simultaneously – one is responsible for network communication, while the other handles the "communication" with the coffee machine.
 
-<img src="pictures/picture1.jpg" width="50%">
-<img src="pictures/picture2.jpg" width="50%">
-<img src="pictures/picture3.jpg" width="50%">
+![picture1](pictures/picture1.jpg)
+![picture1](pictures/picture2.jpg)
+![picture1](pictures/picture3.jpg)
