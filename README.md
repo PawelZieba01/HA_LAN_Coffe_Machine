@@ -1,25 +1,25 @@
-# HA_LAN_Coffe_Machine
-[ESP32] [Micropython] Sterownik/rozszerzenie do ekspresu do kawy - Braun Tassimo
+# HA_LAN_Coffee_Machine
 
-Urządzenie współpracuje z serwerem Home Assistant.
+[ESP32] [MicroPython] Controller / extension for a Braun Tassimo coffee machine.
 
+The device integrates with a Home Assistant server.
 
-### Funkcjonalności
-- Aktywacja parzenia kawy przez sieć LAN (np. z poziomu aplikacji android) - serwer HomeAssistant
-- Zabezpieczenie przed zrobieniem kawy z tej samej kapsułki
-- Informowanie o zakończeniu procesu parzenia kawy
-- Możliwość zaprogramowania godziny parzenia kawy z poziomu serwera HomeAssistant
-- Obsługa WebREPL - komunikacja i programowanie zdalne przez sieć
+### Features
 
-Całość napisana w języku MicroPython
+- Coffee brewing activation over LAN (e.g. from an Android application via the Home Assistant server)
+- Protection against brewing coffee twice using the same capsule
+- Notification when the brewing process is complete
+- Ability to schedule coffee brewing from the Home Assistant server
+- WebREPL support – remote communication and programming over the network
 
-### Sposób działania
+The entire project is written in MicroPython.
 
-ESP32 monitoruje stan diód LED dostępnych na panelu ekspresu i na ich podstawie określa co aktualnie robi urządzenie.
+### How It Works
 
-Uruchomione dwa wątki systemowe - jeden odpowiedzialny za komunikację sieciową, a drugi obsługujący 'komunikację' z ekspresem.
+The ESP32 monitors the state of the LEDs available on the coffee machine's control panel and uses them to determine the current state of the machine.
 
+Two system threads are running simultaneously – one is responsible for network communication, while the other handles the "communication" with the coffee machine.
 
-![picture1](pictures/3.JPG)
-![picture1](pictures/2.JPG)
-![picture1](pictures/1.JPG)
+<img src="pictures/picture1.jpg" width="50%">
+<img src="pictures/picture2.jpg" width="50%">
+<img src="pictures/picture3.jpg" width="50%">
